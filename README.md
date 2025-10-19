@@ -1,109 +1,154 @@
-# Salmonberry Detection Using UAV–Satellite Fusion 🌿
+# 🛰️ UAV–Satellite Fusion for Salmonberry Detection in Alaska
 
-A research project integrating **UAV imagery** and **satellite (Landsat)** data to classify and detect **salmonberry (Rubus spectabilis)** vegetation in sub-Arctic Alaska.  
-This repository follows the recommended Python project structure from the [Python Guide](https://docs.python-guide.org/writing/structure/) and [PEP 8](https://peps.python.org/pep-0008/) conventions for readability, maintainability, and reproducibility.
+This repository hosts a research project focused on **fusing UAV and Landsat satellite data** to improve **vegetation classification**, with a particular focus on detecting *salmonberry (Rubus spectabilis)* in sub-Arctic Alaska.
 
----
-
-## 🧭 Project Overview
-
-The goal of this project is to develop a **fusion model** combining UAV-based orthomosaics and satellite remote-sensing data for improved vegetation classification accuracy in tundra environments.  
-The workflow includes:
-1. **Landsat data retrieval** (with cloud coverage filtering)  
-2. **UAV imagery preprocessing** (orthorectification, resampling)  
-3. **Feature extraction** (vegetation indices: NDVI, GCI, NDWI)  
-4. **Model training and fusion** (e.g., Random Forest, CNN-based approaches)  
-5. **Accuracy assessment and visualization**
+The project integrates geospatial data processing, feature extraction (NDVI, GCI, NDWI), and model fusion techniques to enhance vegetation mapping accuracy. It adheres to the [Python Guide’s recommended structure](https://docs.python-guide.org/writing/structure/) and follows [PEP 8](https://peps.python.org/pep-0008/) and [PEP 257](https://peps.python.org/pep-0257/) coding conventions.
 
 ---
 
-## 📂 Repository Structure
-  salmonberry-fusion/
-  │
-  ├── README.md # Project overview, setup, and usage instructions
-  ├── LICENSE # License information
-  ├── setup.py # Installation and packaging script
-  ├── requirements.txt # Python dependencies
-  ├── .gitignore # Files and directories to be ignored by Git
-  │
-  ├── data/ # Input and output data (not tracked by Git)
-  │ ├── raw/ # Original UAV and satellite data (read-only)
-  │ ├── processed/ # Preprocessed or cleaned datasets
-  │ └── external/ # Any external datasets or shapefiles
-  │
-  ├── notebooks/ # Jupyter notebooks for exploration and visualization
-  │ ├── 01_data_download.ipynb
-  │ ├── 02_preprocessing.ipynb
-  │ ├── 03_feature_extraction.ipynb
-  │ └── 04_modeling.ipynb
-  │
-  ├── src/ # Source code for project modules
-  │ ├── init.py
-  │ ├── data/
-  │ │ ├── init.py
-  │ │ ├── download_landsat.py # Script to download Landsat data with cloud coverage filter
-  │ │ └── preprocess_uav.py
-  │ ├── features/
-  │ │ ├── init.py
-  │ │ └── vegetation_indices.py # Functions for NDVI, GCI, NDWI, etc.
-  │ ├── models/
-  │ │ ├── init.py
-  │ │ └── fusion_model.py # Model training and fusion algorithms
-  │ └── visualization/
-  │ ├── init.py
-  │ └── plot_maps.py # Visualization utilities
-  │
-  ├── tests/ # Unit and integration tests
-  │ ├── init.py
-  │ ├── test_download.py
-  │ ├── test_indices.py
-  │ └── test_model.py
-  │
-  └── docs/ # Documentation (figures, API docs, references)
-  ├── references.md
-  ├── figures/
-  └── usage_examples.md
+## 📖 Overview
 
+Vegetation classification in sub-Arctic regions presents challenges due to cloud cover, sparse vegetation, and limited UAV coverage.  
+This project aims to address these challenges by:
+- **Combining UAV orthomosaics** with **Landsat multispectral imagery**  
+- **Extracting vegetation indices** for improved class separability  
+- **Building a fusion model** to detect salmonberry patches efficiently  
+
+The research supports ecosystem monitoring and resource management in collaboration with the **USDA**.
 
 ---
 
-## ⚙️ Getting Started
+## 🧭 Key Objectives
+1. Develop an automated Landsat data retrieval script with cloud filtering.  
+2. Fuse UAV and satellite data using spatial and spectral alignment.  
+3. Train and evaluate machine learning and deep learning models for vegetation classification.  
+4. Produce interpretable and reproducible visualizations for analysis.
+
+---
+
+## ⚙️ Project Structure
+
+```
+salmonberry-fusion/
+│
+├── README.md               # Project overview, setup, and usage
+├── LICENSE                 # License details
+├── requirements.txt        # Project dependencies
+├── setup.py                # Package setup script
+├── .gitignore              # Ignored files and directories
+│
+├── data/                   # Data storage (excluded from version control)
+│   ├── raw/                # Original UAV and Landsat data
+│   ├── processed/          # Cleaned and aligned datasets
+│   └── external/           # Ancillary datasets (e.g., shapefiles)
+│
+├── notebooks/              # Jupyter notebooks for analysis and visualization
+│   ├── 01_data_download.ipynb
+│   ├── 02_preprocessing.ipynb
+│   ├── 03_feature_extraction.ipynb
+│   └── 04_modeling.ipynb
+│
+├── src/                    # Source code
+│   ├── __init__.py
+│   ├── data/
+│   │   ├── download_landsat.py    # Script to fetch Landsat data by cloud coverage
+│   │   └── preprocess_uav.py
+│   ├── features/
+│   │   └── vegetation_indices.py  # NDVI, GCI, NDWI, etc.
+│   ├── models/
+│   │   └── fusion_model.py        # Fusion and classification models
+│   └── visualization/
+│       └── plot_maps.py           # Plotting and visualization utilities
+│
+├── tests/                  # Unit and integration tests
+│   ├── test_download.py
+│   ├── test_indices.py
+│   └── test_model.py
+│
+└── docs/                   # Documentation and references
+    ├── references.md
+    ├── usage_examples.md
+    └── figures/
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.10+  
-- `gdal`, `rasterio`, `geopandas`, `scikit-learn`, `torch` / `tensorflow` (depending on model)  
-- Access to Google Earth Engine or USGS EarthExplorer API (optional for Landsat retrieval)
+Make sure you have:
+- Python **3.10+**
+- Libraries: `rasterio`, `geopandas`, `gdal`, `numpy`, `scikit-learn`, `torch`, `matplotlib`
+- Access to **USGS EarthExplorer API** or **Google Earth Engine** (for Landsat data)
 
 ### Installation
 ```bash
 git clone https://github.com/<your-username>/salmonberry-fusion.git
 cd salmonberry-fusion
 pip install -r requirements.txt
+```
 
 ---
 
-## 🧠 Code Style & Conventions
-- Follows PEP 8 for formatting.
-- Docstrings follow PEP 257.
-- Function names → snake_case; Classes → CamelCase.
-- Include typing hints for all functions.
-- Use Black or Ruff for linting and auto-formatting.
+## 🛰️ Downloading Landsat Data
+
+The first script focuses on retrieving Landsat imagery filtered by cloud coverage and date range.
+
+```bash
+python src/data/download_landsat.py     --region "Quinhagak"     --cloud 10     --start "2024-06-01"     --end "2024-08-30"
+```
+
+This will save filtered imagery to the `/data/raw` folder for preprocessing.
 
 ---
 
-**## 🧪 Testing**
-Tests use pytest:
-- pytest tests/
+## 🧠 Code Style and Standards
+
+This project adheres to:
+- **PEP 8** – for consistent, readable Python code  
+- **PEP 257** – for clear and concise docstrings  
+- **Type Hints** – for function signatures and better IDE support  
+- **Black / Ruff** – for code formatting and linting  
 
 ---
 
-**## 🛰️ Future Development**
-- Add UAV–Landsat co-registration pipeline
-- Implement CNN-based spectral–spatial fusion model
-- Integrate GPS field validation
-- Publish dataset and trained models
+## 🧪 Testing
+
+All modules are tested using **pytest**:
+
+```bash
+pytest tests/
+```
 
 ---
 
-**## 📜 Acknowledgments**
-This project is conducted in collaboration with the U.S. Department of Agriculture (USDA) and Hampden-Sydney College, focusing on remote-sensing applications for ecological monitoring in Alaska.
+## 📚 Documentation
+
+- Each function and module includes **Google-style docstrings**
+- Full documentation generated with **Sphinx**
+- References and methodology stored under `/docs/`
+
+---
+
+## 🌱 Future Directions
+
+- Integrate deep learning models (CNNs or transformers) for spectral–spatial fusion  
+- Expand to other tundra vegetation classes  
+- Incorporate GPS ground-truth validation  
+- Publish an open dataset and trained model weights  
+
+---
+
+## 🤝 Acknowledgments
+
+This work is conducted in collaboration with the **U.S. Department of Agriculture (USDA)** and **Hampden-Sydney College**, supporting research in environmental monitoring and vegetation mapping in Alaska.
+
+---
+
+## 👤 Authors
+
+**Gyabaah Kyere**  
+B.S. Candidate in Computer Science & Applied Mathematics  
+Hampden-Sydney College | USDA Research Fellow  
+📧 [kyeregyeabourg27@hsc.edu]  
+🔗 [github.com/kyere7](https://github.com/kyere7)
