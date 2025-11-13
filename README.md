@@ -87,10 +87,51 @@ Make sure you have:
 - Access to **USGS EarthExplorer API** or **Google Earth Engine** (for Landsat data)
 
 ### Installation
+
+#### 1. Clone the Repository
 ```bash
 git clone https://github.com/<your-username>/salmonberry-fusion.git
 cd salmonberry-fusion
+```
+
+#### 2. Create a Virtual Environment
+A virtual environment isolates project dependencies from your system Python installation.
+
+**On Windows (PowerShell):**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+**On Windows (Command Prompt):**
+```cmd
+python -m venv venv
+venv\Scripts\activate.bat
+```
+
+**On macOS/Linux:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+You should see `(venv)` at the beginning of your terminal prompt when activated.
+
+#### 3. Install Dependencies
+```bash
+pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+#### 4. Verify Installation
+```bash
+python -c "import sentinelsat; print('sentinelsat installed successfully')"
+```
+
+#### Deactivating the Virtual Environment
+When finished working on the project, deactivate the virtual environment:
+```bash
+deactivate
 ```
 
 ---
