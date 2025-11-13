@@ -42,6 +42,11 @@ salmonberry-fusion/
 │   ├── processed/          # Cleaned and aligned datasets
 │   └── external/           # Ancillary datasets (e.g., shapefiles)
 │
+├── scripts/                # Standalone scripts and utilities
+│   ├── sentinel_query.py       # Query and download Sentinel-2 satellite imagery
+│   ├── sentinel_query.yaml     # Configuration file for sentinel_query.py
+│   └── CONFIG_INTEGRATION_SUMMARY.md  # Documentation for config integration
+│
 ├── notebooks/              # Jupyter notebooks for analysis and visualization
 │   ├── 01_data_download.ipynb
 │   ├── 02_preprocessing.ipynb
@@ -90,17 +95,98 @@ pip install -r requirements.txt
 
 ---
 
-## 🛰️ Downloading Landsat Data
+## 🛰️ Downloading Sentinel-2 Satellite Data
 
-The first script focuses on retrieving Landsat imagery filtered by cloud coverage and date range.
+This project includes a powerful script for querying and downloading Sentinel-2 imagery from the Copernicus Data Space Hub. All configuration is managed through a simple **YAML file**, making it easy to customize parameters without modifying code.
 
-```bash
-python src/data/download_landsat.py     --region "Quinhagak"     --cloud 10     --start "2024-06-01"     --end "2024-08-30"
+### Quick Start
+
+1. **Configure Your Settings** - Edit `scripts/sentinel_query.yaml`:
+   ```yaml
+   credentials:
+     user: "${SENTINEL_USER}"      # Set environment variable or use plain text
+     password: "${SENTINEL_PW}"    # Set environment variable or use plain text
+     api_url: "https://dataspace.copernicus.eu/"
+
+   query:
+     product_type: "S2MSI2A"       # L2A surface reflectance (recommended)
+     cloud_max: 5.0                # Maximum cloud cover (%)
+     date_range:
+       start_year: 2019
+       end_year: 2024
+       months: [5, 8]              # May-August
+
+   spatial:
+     sr_input_epsg: 4326
+     sr_output_epsg: 4326
+     wkt_area: null                # Provide WKT polygon or use Emlid CSV
+
+   inputs:
+     emlid_csv: null               # Path to Emlid survey CSV (optional)
+     lat_field: "lat"
+     lon_field: "lon"
+
+   outputs:
+     download_dir: "./sentinel_downloads"
+     gdb_path: "./data.gdb"
+     study_areas_fc: "./data.gdb/study_areas"
+     raster_output_dir: "./raster_composites"
+
+   processing:
+     rgb_bands: ["B04", "B03", "B02"]    # Red, Green, Blue
+     nir_bands: ["B08", "B04", "B03"]    # NIR, Red, Green
+     limit_products: 3
+   ```
+
+2. **Run the Script** - Execute the complete workflow:
+   ```bash
+   cd scripts
+   python sentinel_query.py
+   ```
+
+   The script will:
+   - Load configuration from `sentinel_query.yaml`
+   - Create study area polygons from Emlid CSV (if provided)
+   - Query Sentinel-2 products matching your criteria
+   - Download matched products
+   - Create RGB and NIR composite rasters
+
+### Configuration Details
+
+- **Credentials**: Use environment variables (`${SENTINEL_USER}`, `${SENTINEL_PW}`) for secure credential management
+- **Query Parameters**: Customize product type, cloud cover threshold, date range, and seasonal constraints
+- **Spatial Settings**: Define coordinate reference systems and area-of-interest
+- **Inputs**: Provide Emlid CSV file paths for automated study area creation
+- **Outputs**: Specify directories for downloads and processed rasters
+- **Processing**: Select specific band combinations for composites (RGB, NIR, etc.)
+
+### Programmatic Usage
+
+You can also use the script as a Python module:
+
+```python
+from sentinel_query import load_config, query_sentinel_products_from_config, download_products_from_config
+
+# Load configuration
+config = load_config("sentinel_query.yaml")
+
+# Query products
+products = query_sentinel_products_from_config(config, wkt_area="POLYGON (...)")
+
+# Download products
+downloaded = download_products_from_config(config, products)
+
+# Create composites
+from sentinel_query import stack_rgb_from_config, stack_nir_from_config
+for safe_dir in downloaded:
+    stack_rgb_from_config(config, safe_dir, "output_rgb.tif")
+    stack_nir_from_config(config, safe_dir, "output_nir.tif")
 ```
 
-This will save filtered imagery to the `/data/raw` folder for preprocessing.
+For detailed configuration integration documentation, see `scripts/CONFIG_INTEGRATION_SUMMARY.md`.
 
 ---
+
 
 ## 🧠 Code Style and Standards
 

@@ -1,0 +1,82 @@
+# ============================================================================
+# Salmonberry Fusion Project - Python Dependencies
+# ============================================================================
+# Install with: pip install -r requirements.txt
+# 
+# This project fuses UAV and Satellite data for vegetation classification,
+# specifically for detecting salmonberry in sub-Arctic Alaska.
+# ============================================================================
+
+# ====================
+# Core Data Processing
+# ====================
+numpy>=1.21.0          # Numerical computing and array operations
+pandas>=1.3.0          # Data manipulation and analysis
+scipy>=1.7.0           # Scientific computing and signal processing
+
+# ====================
+# Geospatial Libraries
+# ====================
+rasterio>=1.2.0        # Reading and writing geospatial raster data
+geopandas>=0.10.0      # Geographic pandas for vector data operations
+shapely>=2.0.0         # Geometric objects and operations
+gdal>=3.4.0            # Geospatial Data Abstraction Library (requires system installation)
+
+# ====================
+# Remote Sensing
+# ====================
+sentinelsat>=0.14      # Query and download Sentinel-2 products from Copernicus Data Space Hub
+requests>=2.25.0       # HTTP library (dependency of sentinelsat)
+pyyaml>=6.0            # YAML configuration file parsing
+
+# ====================
+# Machine Learning & Deep Learning
+# ====================
+scikit-learn>=1.0.0    # Machine learning models and utilities
+torch>=1.9.0           # PyTorch deep learning framework
+torchvision>=0.10.0    # PyTorch computer vision utilities
+
+# ====================
+# Visualization
+# ====================
+matplotlib>=3.4.0      # Plotting and visualization
+seaborn>=0.11.0        # Statistical data visualization
+pillow>=8.3.0          # Image processing
+
+# ====================
+# Development & Testing
+# ====================
+pytest>=6.2.0          # Testing framework
+black>=21.0            # Code formatter (PEP 8 compliant)
+ruff>=0.0.1            # Fast Python linter
+sphinx>=4.0.0          # Documentation generator
+
+# ====================
+# Utilities
+# ====================
+tqdm>=4.60.0           # Progress bars for loops and downloads
+jupyter>=1.0.0         # Jupyter notebook environment
+ipython>=7.20.0        # Enhanced interactive Python shell
+
+# ====================
+# Optional but Recommended
+# ====================
+# Uncomment the following if needed:
+# fiona>=1.8.0          # Vector I/O
+# rioxarray>=0.11.0     # Raster/xarray integration
+# xarray>=0.19.0        # Multi-dimensional array operations
+# dask>=2021.12.0       # Parallel computing for large datasets
+
+# ====================
+# Notes
+# ====================
+# - arcpy is NOT included as it requires an ArcGIS Pro installation
+#   (only available on Windows with ArcGIS Pro)
+# 
+# - GDAL requires system-level libraries:
+#   Windows: conda install gdal (recommended)
+#   Linux:   sudo apt-get install gdal-bin libgdal-dev
+#   macOS:   brew install gdal
+#
+# - For ArcGIS Pro users, use conda instead of pip:
+#   conda install -c esri -r requirements.txt

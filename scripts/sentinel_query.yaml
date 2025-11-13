@@ -1,0 +1,145 @@
+# ============================================================================
+# sentinel_query.yaml
+# ============================================================================
+# Configuration file for sentinel_query.py script
+#
+# This YAML file contains all necessary parameters for querying and downloading
+# Sentinel-2 satellite imagery from the Copernicus Data Space Hub using the
+# sentinelsat library. It includes credentials, query parameters, spatial 
+# parameters, and output/processing settings.
+#
+# STRUCTURE:
+# - credentials: Authentication credentials for Copernicus Data Space Hub
+# - query: Query parameters (date ranges, cloud cover, product type)
+# - spatial: Area-of-interest and coordinate reference system settings
+# - inputs: Input file paths (Emlid CSV, WKT geometries, etc.)
+# - outputs: Output directories and file paths for downloads/processed data
+# - processing: Band selection and composite raster settings
+# - logging: Log level and output configuration
+# ============================================================================
+
+
+# CREDENTIALS
+# -----------
+# Credentials for accessing the Copernicus Data Space Hub API
+# Store sensitive credentials securely or use environment variables
+credentials:
+  # Username for Copernicus Data Space account
+  user: "${SENTINEL_USER}"  # Can reference env vars or use plain text
+  
+  # Password for Copernicus Data Space account
+  password: "${SENTINEL_PW}"  # Can reference env vars or use plain text
+  
+  # API endpoint URL (use Copernicus Data Space; deprecated SciHub still supported)
+  api_url: "https://dataspace.copernicus.eu/"
+
+
+# QUERY PARAMETERS
+# ----------------
+# Settings for querying Sentinel-2 products from the API
+query:
+  # Sentinel-2 product type (S2MSI2A = L2A surface reflectance, recommended)
+  # Alternative: S2MSI1C for L1C top-of-atmosphere reflectance
+  product_type: "S2MSI2A"
+  
+  # Platform name (usually "Sentinel-2")
+  platform_name: "Sentinel-2"
+  
+  # Maximum allowed cloud cover percentage for products (0-100)
+  # Recommended: 5.0 for clear-sky imagery
+  cloud_max: 5.0
+  
+  # Date range for queries
+  date_range:
+    # Start year (inclusive)
+    start_year: 2019
+    
+    # End year (inclusive)
+    end_year: 2024
+    
+    # Constrain query to specific months within each year
+    # Format: [start_month, end_month] (1-12)
+    # (5, 8) = May 1 through August 31 of each year
+    months: [5, 8]
+
+
+# SPATIAL PARAMETERS
+# ------------------
+# Area-of-interest and coordinate reference system settings
+spatial:
+  # Spatial reference system (EPSG code)
+  # 4326 = WGS84 (lat/lon), 3857 = Web Mercator, etc.
+  sr_input_epsg: 4326
+  sr_output_epsg: 4326
+  
+  # Area-of-interest as WKT (Well-Known Text) polygon or multipolygon
+  # Example: "POLYGON ((lon1 lat1, lon2 lat2, ..., lon1 lat1))"
+  # If not specified here, will be read from input CSV or GeoJSON
+  wkt_area: null
+  
+  # Alternative: path to GeoJSON file containing geometry
+  # If specified, will override wkt_area
+  geojson_path: null
+
+
+# INPUT FILES
+# -----------
+# Paths to input data (Emlid CSV, existing geometries, etc.)
+inputs:
+  # Path to Emlid CSV file containing survey point coordinates
+  # CSV should have columns: lat, lon, and optionally name/id
+  emlid_csv: null
+  
+  # Column name for latitude values in CSV
+  lat_field: "lat"
+  
+  # Column name for longitude values in CSV
+  lon_field: "lon"
+
+
+# OUTPUT DIRECTORIES & PATHS
+# ---------------------------
+# Locations where downloaded products and processed files will be stored
+outputs:
+  # Base directory where Sentinel-2 SAFE format archives will be downloaded
+  download_dir: "./sentinel_downloads"
+  
+  # Output geodatabase or directory for ArcGIS feature classes/rasters
+  gdb_path: "./data.gdb"
+  
+  # Feature class (polygon) created from Emlid survey points
+  # Full path format: "C:\\path\\to\\data.gdb\\study_areas"
+  study_areas_fc: "./data.gdb/study_areas"
+  
+  # Output directory for composite raster stacks
+  raster_output_dir: "./raster_composites"
+
+
+# BAND SELECTION & PROCESSING
+# ----------------------------
+# Settings for selecting and compositing Sentinel-2 bands
+processing:
+  # Sentinel-2 10m resolution bands to stack for RGB composite
+  # B04 = Red, B03 = Green, B02 = Blue (standard RGB)
+  rgb_bands: ["B04", "B03", "B02"]
+  
+  # Alternative: Sentinel-2 bands for NIR composites
+  # B08 = NIR, B04 = Red, B03 = Green (for vegetation analysis)
+  nir_bands: ["B08", "B04", "B03"]
+  
+  # Number of products to process (set to null for all matched products)
+  limit_products: 3
+
+
+# LOGGING
+# -------
+# Logging configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # Log file path (null = console only)
+  file_path: "./sentinel_query.log"
+  
+  # Log format string
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
