@@ -40,6 +40,14 @@ try:
 except ImportError:
     raise ImportError("PyYAML is required. Install with: pip install pyyaml")
 
+try:
+    import geopandas as gpd
+    from shapely.geometry import shape, mapping
+    from shapely.ops import unary_union
+    HAS_GEOPANDAS = True
+except ImportError:
+    HAS_GEOPANDAS = False
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -88,6 +96,63 @@ def load_config(config_path: str) -> Dict[str, Any]:
     config = _resolve_env_vars(config)
     logger.debug(f"Configuration loaded successfully")
     return config
+
+
+def read_shapefile_to_wkt(
+    shapefile_path: str,
+    feature_index: Optional[int] = None,
+    target_epsg: int = 4326,
+) -> str:
+    """
+    Read a shapefile and convert its geometry to WKT format.
+    
+    Args:
+        shapefile_path: Path to .shp file
+        feature_index: Index of feature to use (0-based). If None, merges all features.
+        target_epsg: Target EPSG code for reprojection (default: 4326 WGS84)
+        
+    Returns:
+        WKT string representation of the geometry
+        
+    Raises:
+        FileNotFoundError: If shapefile does not exist
+        ImportError: If geopandas/shapely not installed
+    """
+    if not HAS_GEOPANDAS:
+        raise ImportError(
+            "GeoPandas and Shapely are required for shapefile support. "
+            "Install with: pip install geopandas shapely"
+        )
+    
+    if not os.path.exists(shapefile_path):
+        raise FileNotFoundError(f"Shapefile not found: {shapefile_path}")
+    
+    logger.info(f"Reading shapefile: {shapefile_path}")
+    gdf = gpd.read_file(shapefile_path)
+    
+    logger.info(f"Shapefile contains {len(gdf)} feature(s)")
+    
+    # Reproject to target EPSG if needed
+    if gdf.crs and gdf.crs.to_epsg() != target_epsg:
+        logger.info(f"Reprojecting from EPSG:{gdf.crs.to_epsg()} to EPSG:{target_epsg}")
+        gdf = gdf.to_crs(epsg=target_epsg)
+    
+    # Select feature or merge all features
+    if feature_index is not None:
+        if feature_index >= len(gdf):
+            raise IndexError(
+                f"Feature index {feature_index} out of range (shapefile has {len(gdf)} features)"
+            )
+        logger.info(f"Using feature {feature_index}")
+        geometry = gdf.iloc[feature_index].geometry
+    else:
+        logger.info("Merging all features from shapefile")
+        geometry = unary_union(gdf.geometry)
+    
+    # Convert to WKT
+    wkt = geometry.wkt
+    logger.debug(f"Generated WKT: {wkt[:100]}..." if len(wkt) > 100 else f"Generated WKT: {wkt}")
+    return wkt
 
 # ----------------------------
 # Constants & Band Mapping
@@ -216,6 +281,11 @@ def query_sentinel_products_from_config(
     """
     Query Sentinel-2 products using parameters from YAML config.
     
+    Supports multiple input formats with the following priority:
+    1. shapefile_path (from spatial section)
+    2. geojson_path (from spatial section)
+    3. wkt_area (parameter or config spatial section)
+    
     Args:
         config: Configuration dictionary from load_config()
         wkt_area: Override WKT area from config (optional)
@@ -225,13 +295,34 @@ def query_sentinel_products_from_config(
     """
     creds = SentinelCredentials.from_config(config)
     
-    # Get spatial parameters
+    # Get spatial and input parameters
     spatial_cfg = config.get("spatial", {})
+    inputs_cfg = config.get("inputs", {})
+    
+    # Priority: shapefile > geojson > wkt_area parameter > config wkt_area
     if wkt_area is None:
-        wkt_area = spatial_cfg.get("wkt_area")
+        # Try shapefile
+        shapefile_path = spatial_cfg.get("shapefile_path")
+        if shapefile_path:
+            logger.info("Loading WKT from shapefile")
+            feature_index = inputs_cfg.get("shapefile_feature_index")
+            target_epsg = spatial_cfg.get("sr_output_epsg", 4326)
+            wkt_area = read_shapefile_to_wkt(shapefile_path, feature_index, target_epsg)
+        else:
+            # Try GeoJSON
+            geojson_path = spatial_cfg.get("geojson_path")
+            if geojson_path:
+                logger.info("Loading WKT from GeoJSON")
+                wkt_area = geojson_to_wkt(read_geojson(geojson_path))
+            else:
+                # Fall back to WKT
+                wkt_area = spatial_cfg.get("wkt_area")
     
     if not wkt_area:
-        raise ValueError("No WKT area specified in config or parameters")
+        raise ValueError(
+            "No area-of-interest specified. Provide one of: "
+            "shapefile_path, geojson_path, or wkt_area in config"
+        )
     
     # Get query parameters
     query_cfg = config.get("query", {})

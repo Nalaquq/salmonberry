@@ -74,11 +74,16 @@ spatial:
   
   # Area-of-interest as WKT (Well-Known Text) polygon or multipolygon
   # Example: "POLYGON ((lon1 lat1, lon2 lat2, ..., lon1 lat1))"
-  # If not specified here, will be read from input CSV or GeoJSON
+  # If not specified here, will be read from shapefile, GeoJSON, or Emlid CSV
   wkt_area: null
   
+  # Path to shapefile (.shp) defining the study area
+  # Priority: shapefile > geojson > wkt_area
+  # The script will read all features from the shapefile and create a bounding geometry
+  shapefile_path: null
+  
   # Alternative: path to GeoJSON file containing geometry
-  # If specified, will override wkt_area
+  # Priority: shapefile > geojson > wkt_area
   geojson_path: null
 
 
@@ -88,6 +93,7 @@ spatial:
 inputs:
   # Path to Emlid CSV file containing survey point coordinates
   # CSV should have columns: lat, lon, and optionally name/id
+  # Priority: shapefile > emlid_csv
   emlid_csv: null
   
   # Column name for latitude values in CSV
@@ -95,6 +101,10 @@ inputs:
   
   # Column name for longitude values in CSV
   lon_field: "lon"
+  
+  # Feature index to use from shapefile (if multiple features exist)
+  # Use 0 for first feature, or null to merge all features
+  shapefile_feature_index: null
 
 
 # OUTPUT DIRECTORIES & PATHS

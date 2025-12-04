@@ -100,7 +100,7 @@ A virtual environment isolates project dependencies from your system Python inst
 **On Windows (PowerShell):**
 ```powershell
 python -m venv venv
-.\venv\Scripts\Activate.ps1
+.\env\Scripts\Activate.ps1
 ```
 
 **On Windows (Command Prompt):**
@@ -160,12 +160,15 @@ This project includes a powerful script for querying and downloading Sentinel-2 
    spatial:
      sr_input_epsg: 4326
      sr_output_epsg: 4326
-     wkt_area: null                # Provide WKT polygon or use Emlid CSV
+     shapefile_path: null          # Path to .shp file (HIGHEST PRIORITY)
+     geojson_path: null            # Path to GeoJSON file (2nd priority)
+     wkt_area: null                # WKT polygon string (3rd priority)
 
    inputs:
-     emlid_csv: null               # Path to Emlid survey CSV (optional)
+     emlid_csv: null               # Path to Emlid survey CSV
      lat_field: "lat"
      lon_field: "lon"
+     shapefile_feature_index: null # Feature index to use from shapefile (null = merge all)
 
    outputs:
      download_dir: "./sentinel_downloads"
@@ -196,10 +199,32 @@ This project includes a powerful script for querying and downloading Sentinel-2 
 
 - **Credentials**: Use environment variables (`${SENTINEL_USER}`, `${SENTINEL_PW}`) for secure credential management
 - **Query Parameters**: Customize product type, cloud cover threshold, date range, and seasonal constraints
-- **Spatial Settings**: Define coordinate reference systems and area-of-interest
-- **Inputs**: Provide Emlid CSV file paths for automated study area creation
+- **Spatial Settings**: Define coordinate reference systems and area-of-interest using:
+  - **Shapefile** (`.shp`) - HIGHEST PRIORITY: Specify `shapefile_path` with optional `shapefile_feature_index`
+  - **GeoJSON** - 2nd priority: Specify `geojson_path`
+  - **WKT** - 3rd priority: Specify `wkt_area` as a polygon string
+- **Inputs**: Provide Emlid CSV file paths for automated study area creation (if no shapefile provided)
 - **Outputs**: Specify directories for downloads and processed rasters
 - **Processing**: Select specific band combinations for composites (RGB, NIR, etc.)
+
+### Using Shapefiles for Study Area Definition
+
+Shapefiles are the **recommended** way to define your study area:
+
+```yaml
+spatial:
+  shapefile_path: "./data/study_area.shp"  # Path to your shapefile
+  sr_output_epsg: 4326                     # Output CRS (WGS84)
+
+inputs:
+  shapefile_feature_index: null            # null = use all features, 0 = first feature only
+```
+
+The script will:
+- Read all features from the shapefile (or a specific feature by index)
+- Automatically reproject to the specified output CRS
+- Merge multiple features if needed
+- Convert to WKT format for Sentinel-2 queries
 
 ### Programmatic Usage
 
