@@ -1,0 +1,137 @@
+# ==========================================================================
+# Configuration for scripts/calculate_slope.py
+#
+# Terrain slope by central finite differences. Edit the paths below; never
+# edit the script itself.
+#
+#     python scripts/calculate_slope.py --config config/slope_config.yaml
+#
+# Run a single job from this file:
+#
+#     python scripts/calculate_slope.py --config config/slope_config.yaml \
+#         --job arcticdem
+#
+# PATHS
+#   Absolute paths are used as given. Relative paths resolve against THIS
+#   FILE'S directory (F:/salmonberry/config), not the working directory, so
+#   the file can be committed alongside the data and run from anywhere.
+#   Forward slashes work on Windows and avoid YAML escaping problems.
+#
+# STRICT KEYS
+#   An unrecognised key is an error, not a silent no-op. A misspelled
+#   'z_factor' or 'apply_scale_factor_correction' would otherwise leave a
+#   systematic error in the product with nothing to show for it.
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# defaults: applied to every job below; any job may override any of them.
+# --------------------------------------------------------------------------
+defaults:
+  # Multiplier converting the VERTICAL (elevation) unit into the HORIZONTAL
+  # linear unit of the CRS, so that the gradient is dimensionless.
+  #   1.0        elevation and grid both in metres          <- the usual case
+  #   3.2808333  metre elevations on a US survey foot grid
+  #   0.3048     foot elevations on a metre grid
+  # A GeoTIFF rarely encodes its vertical unit, so this cannot be detected
+  # automatically. Check the product metadata: some NOAA coastal deliverables
+  # are in US survey feet.
+  z_factor: 1.0
+
+  # NoData value for the OUTPUT slope raster. Must lie outside the attainable
+  # slope range [0, 90) degrees so it can never be mistaken for a measurement.
+  output_nodata: -9999.0
+
+  # Replace an existing output file. Keep false so a finished product is not
+  # destroyed by an accidental re-run.
+  overwrite: false
+
+  # Correct for map-projection distance distortion by dividing the nominal
+  # cell size by the projection's point scale factor k, so that derivatives
+  # are taken with respect to TRUE GROUND distance rather than map-plane
+  # distance. Set per job below. See the note under the ArcticDEM job.
+  apply_scale_factor_correction: false
+
+  # Proceed even with a geographic (degree-based) CRS. Leave false: a slope
+  # computed from degrees of longitude is not a physically meaningful angle.
+  # Reproject the DEM instead.
+  allow_geographic_crs: false
+
+# --------------------------------------------------------------------------
+# jobs: one entry per raster. They run in order; a failure in one does not
+#       stop the rest, and the exit status reports whether any failed.
+# --------------------------------------------------------------------------
+jobs:
+  # ------------------------------------------------------------------------
+  # NOAA lidar (Digital Coast / Office for Coastal Management)
+  #
+  #   Airborne lidar, normally a BARE-EARTH DTM: slope of the actual ground.
+  #   Typically 1 m resolution, UTM or State Plane (both conformal, so the
+  #   scale factor is within ~0.1% of 1 and the correction is optional).
+  #   NAVD88 orthometric heights.
+  #
+  #   CHECK BEFORE RUNNING:
+  #     - vertical unit: metres or US survey feet? set z_factor accordingly
+  #     - the declared NoData value in the GeoTIFF header (usually -9999)
+  #   The script reports the CRS, its linear unit, and the cell size on every
+  #   run, so a mismatch is visible in the log.
+  # ------------------------------------------------------------------------
+  - name: noaa_lidar
+    input_raster: E:/USDA_Salmonberries/NOAA_2024_Lidar_UTM4_1.tif
+    output_raster: E:/USDA_Salmonberries/NOAA_2024_Lidar_UTM4_1_slope.tif
+    z_factor: 1.0
+    apply_scale_factor_correction: false
+
+  # ------------------------------------------------------------------------
+  # ArcticDEM (Polar Geospatial Center)
+  #
+  #   Stereo-photogrammetric DIGITAL SURFACE MODEL, not lidar and not bare
+  #   earth: over vegetation it measures the canopy top, not the ground.
+  #   2 m strips / 2 m, 10 m, 32 m mosaics. Ellipsoidal (WGS84) heights in
+  #   metres, which needs no conversion for slope because the geoid gradient
+  #   is below 0.01 degrees.
+  #
+  #   SCALE FACTOR CORRECTION IS ON HERE, AND SHOULD BE.
+  #   ArcticDEM uses EPSG:3413 (NSIDC Polar Stereographic North), whose
+  #   standard parallel is 70 N. Away from 70 N, map distances differ
+  #   materially from ground distances:
+  #
+  #       latitude   k         uncorrected gradient bias
+  #       75 N       0.98666   -1.33 %
+  #       70 N       1.00000    0.00 %   (standard parallel)
+  #       65 N       1.01750   +1.75 %
+  #       60 N       1.03998   +4.00 %
+  #       55 N       1.06716   +6.72 %
+  #
+  #   At ~59.7 N a nominal 2 m cell spans only 1.9214 m on the ground, so an
+  #   uncorrected slope of 15.00 degrees is really 15.58 degrees. That is a
+  #   systematic bias, not noise: it does not average out and it propagates
+  #   into every statistic derived from the raster.
+  #
+  #   Set this to false ONLY if you need to reproduce the nominal-grid-unit
+  #   convention used by standard GIS slope tools -- and say so in the paper.
+  # ------------------------------------------------------------------------
+  - name: arcticdem
+    input_raster: F:/USDA_Salmonberries/ArcticDEM_2m.tif
+    output_raster: F:/USDA_Salmonberries/ArcticDEM_2m_slope.tif
+    z_factor: 1.0
+    apply_scale_factor_correction: true
+
+# --------------------------------------------------------------------------
+# COMPARING THE TWO PRODUCTS
+#
+# A difference between NOAA lidar slope and ArcticDEM slope at the same place
+# confounds at least four separate effects. Do not read it as terrain change
+# without separating them:
+#
+#   1. Surface type   bare earth (DTM) vs. canopy / first surface (DSM)
+#   2. Spatial scale  1 m vs. 2 m grids resolve different terrain; slope is
+#                     scale-dependent and the finer grid yields higher maxima
+#                     and greater variance
+#   3. Projection     UTM/State Plane vs. polar stereographic, with different
+#                     scale-factor bias unless corrected in both
+#   4. Epoch          different acquisition dates; mosaics blend dates
+#
+# For a defensible comparison: resample to a common grid and resolution,
+# apply the scale-factor correction to both, restrict to unvegetated ground
+# (tundra, bare sediment, exposed bedrock, gravel bars), and state the epochs.
+# --------------------------------------------------------------------------
