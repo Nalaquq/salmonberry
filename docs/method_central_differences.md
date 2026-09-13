@@ -9,7 +9,7 @@ $$
 Because elevation is known only at discrete grid points rather than continuously, these derivatives must be approximated numerically. We used the **central differences method**, which estimates the derivative at a given cell from its two neighboring cells on either side, in each direction:
 
 $$
-Z'(x) \approx \frac{Z(x+dx) - Z(x-dx)}{2\,dx}
+Z'(x) \approx \frac{Z(x+dx) - Z(x-dx)}{2\dx}
 $$
 
 This estimator can be derived from a Taylor expansion of the elevation surface about the focal cell in both the $+dx$ and $-dx$ directions. Subtracting the two expansions cancels both the focal elevation value and the second-order curvature term, leaving an approximation whose leading error scales with $dx^2$. This makes the central-difference estimate _second-order accurate_: halving the cell size reduces the truncation error roughly fourfold, compared to the coarser, first-order accuracy of simple forward or backward differences.
