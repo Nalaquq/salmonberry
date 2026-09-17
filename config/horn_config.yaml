@@ -1,24 +1,32 @@
 # ==========================================================================
-# Configuration for scripts/calculate_slope.py
+# Configuration for scripts/Horns.py
 #
-# Terrain slope by central finite differences. Edit the paths below; never
-# edit the script itself.
+# Terrain slope by HORN'S (1981) finite-difference method over the complete
+# 3x3 cell neighbourhood. Edit the paths below; never edit the script itself.
 #
-#     python scripts/calculate_slope.py --config config/slope_config.yaml
+#     python scripts/Horns.py --config config/horn_config.yaml
 #
 # Run a single job from this file:
 #
-#     python scripts/calculate_slope.py --config config/slope_config.yaml \
-#         --job arcticdem
+#     python scripts/Horns.py --config config/horn_config.yaml --job arcticdem
 #
-# COMPANION PRODUCT
-#   Horn's 3x3 finite-difference slope is configured separately, in
-#   config/horn_config.yaml, driven by scripts/Horns.py. The two files share
-#   this format but stay separate because each names the output path of its
-#   own product. To compare the methods, point a job in each file at the same
-#   input_raster, with the same z_factor and the same
-#   apply_scale_factor_correction setting, so the estimator is the only
-#   difference between the two outputs.
+# OUTPUT
+#   A single-band float32 GeoTIFF of SLOPE ANGLE IN DEGREES, range [0, 90),
+#   co-registered cell-for-cell with the input DEM. Not elevation, not
+#   percent slope. Method documented in docs/method_horn.md.
+#
+# WHY A SEPARATE FILE FROM slope_config.yaml
+#   The two files have an identical format, and deliberately so. They are kept
+#   separate because each job names the OUTPUT PATH of its own product: one
+#   entry cannot carry two different outputs for the same input without
+#   ambiguity about which method wrote which file. Both scripts also reject
+#   unrecognised keys outright, so a key added for one method would make the
+#   shared file unreadable to the other. Keeping them apart means each
+#   product's provenance is one self-contained, version-controlled artefact.
+#
+#   To compare the two methods over the same DEM, point a job in each file at
+#   the same input_raster and give the outputs distinguishable names (the
+#   suffixes _slope_cd and _slope_horn are used below).
 #
 # PATHS
 #   Absolute paths are used as given. Relative paths resolve against THIS
@@ -55,12 +63,15 @@ defaults:
   overwrite: false
 
   # Correct for map-projection distance distortion by dividing the nominal
-  # cell size by the projection's point scale factor k, so that derivatives
-  # are taken with respect to TRUE GROUND distance rather than map-plane
-  # distance. Set per job below. See the note under the ArcticDEM job.
+  # cell size by the projection's point scale factor k, so that Horn's
+  # derivatives are taken with respect to TRUE GROUND distance rather than
+  # map-plane distance. Set per job below. See the note under the ArcticDEM
+  # job. The correction must be set THE SAME WAY here as in slope_config.yaml
+  # if the two slope products are to be compared.
   apply_scale_factor_correction: false
 
-  # Proceed even with a geographic (degree-based) CRS. Leave false: a slope
+  # Proceed even with a geographic (degree-based) CRS. Leave false: Horn's
+  # denominators 8*dx and 8*dy must be physical distances, and a slope
   # computed from degrees of longitude is not a physically meaningful angle.
   # Reproject the DEM instead.
   allow_geographic_crs: false
@@ -78,15 +89,22 @@ jobs:
   #   scale factor is within ~0.1% of 1 and the correction is optional).
   #   NAVD88 orthometric heights.
   #
+  #   Horn's 1-2-1 transverse weighting attenuates the pit-and-spike noise
+  #   that a 1 m lidar DTM carries from interpolation between returns, at the
+  #   cost of representing narrow features - a stream incision, a terrace
+  #   riser, a road cut - less sharply than the central difference does.
+  #   Neither response is more correct; the choice depends on whether the
+  #   narrow features or the noise matter more for the analysis at hand.
+  #
   #   CHECK BEFORE RUNNING:
   #     - vertical unit: metres or US survey feet? set z_factor accordingly
   #     - the declared NoData value in the GeoTIFF header (usually -9999)
-  #   The script reports the CRS, its linear unit, and the cell size on every
-  #   run, so a mismatch is visible in the log.
+  #   The script reports the CRS, its type, the cell size and the NoData value
+  #   on every run, so a mismatch is visible in the log.
   # ------------------------------------------------------------------------
   - name: noaa_lidar
     input_raster: E:/USDA_Salmonberries/NOAA_2024_Lidar_UTM4_1.tif
-    output_raster: E:/USDA_Salmonberries/NOAA_2024_Lidar_UTM4_1_slope.tif
+    output_raster: E:/USDA_Salmonberries/NOAA_2024_Lidar_UTM4_1_slope_horn.tif
     z_factor: 1.0
     apply_scale_factor_correction: false
 
@@ -94,10 +112,11 @@ jobs:
   # ArcticDEM (Polar Geospatial Center)
   #
   #   Stereo-photogrammetric DIGITAL SURFACE MODEL, not lidar and not bare
-  #   earth: over vegetation it measures the canopy top, not the ground.
-  #   2 m strips / 2 m, 10 m, 32 m mosaics. Ellipsoidal (WGS84) heights in
-  #   metres, which needs no conversion for slope because the geoid gradient
-  #   is below 0.01 degrees.
+  #   earth: over vegetation it measures the canopy top, not the ground. The
+  #   slope it yields is the slope of that surface, which over salmonberry
+  #   thicket is canopy, not terrain. 2 m strips / 2 m, 10 m, 32 m mosaics.
+  #   Ellipsoidal (WGS84) heights in metres, which needs no conversion for
+  #   slope because the geoid gradient is below 0.01 degrees.
   #
   #   SCALE FACTOR CORRECTION IS ON HERE, AND SHOULD BE.
   #   ArcticDEM uses EPSG:3413 (NSIDC Polar Stereographic North), whose
@@ -114,33 +133,40 @@ jobs:
   #   At ~59.7 N a nominal 2 m cell spans only 1.9214 m on the ground, so an
   #   uncorrected slope of 15.00 degrees is really 15.58 degrees. That is a
   #   systematic bias, not noise: it does not average out and it propagates
-  #   into every statistic derived from the raster.
+  #   into every statistic derived from the raster. The correction applies to
+  #   Horn's method exactly as it does to the central difference, because both
+  #   divide an elevation difference by a horizontal distance.
   #
   #   Set this to false ONLY if you need to reproduce the nominal-grid-unit
   #   convention used by standard GIS slope tools -- and say so in the paper.
   # ------------------------------------------------------------------------
   - name: arcticdem
     input_raster: F:/USDA_Salmonberries/ArcticDEM_2m.tif
-    output_raster: F:/USDA_Salmonberries/ArcticDEM_2m_slope.tif
+    output_raster: F:/USDA_Salmonberries/ArcticDEM_2m_slope_horn.tif
     z_factor: 1.0
     apply_scale_factor_correction: true
 
 # --------------------------------------------------------------------------
-# COMPARING THE TWO PRODUCTS
+# COMPARING HORN'S SLOPE WITH THE CENTRAL-DIFFERENCE SLOPE
 #
-# A difference between NOAA lidar slope and ArcticDEM slope at the same place
-# confounds at least four separate effects. Do not read it as terrain change
-# without separating them:
+# Running both scripts over the same DEM with the same z_factor and the same
+# scale-factor setting isolates the derivative estimator, which is the only
+# thing that then differs between the two products. Expected differences:
 #
-#   1. Surface type   bare earth (DTM) vs. canopy / first surface (DSM)
-#   2. Spatial scale  1 m vs. 2 m grids resolve different terrain; slope is
-#                     scale-dependent and the finer grid yields higher maxima
-#                     and greater variance
-#   3. Projection     UTM/State Plane vs. polar stereographic, with different
-#                     scale-factor bias unless corrected in both
-#   4. Epoch          different acquisition dates; mosaics blend dates
+#   - Horn's values are slightly LOWER at sharp, narrow terrain features,
+#     because the 1-2-1 transverse weighting averages across three rows or
+#     columns and attenuates isolated extremes.
+#   - The two agree exactly on a planar surface, where there is no curvature
+#     transverse to the direction of differentiation.
+#   - Horn's valid area is slightly SMALLER around every NoData gap: Horn
+#     dilates a gap by one cell in all eight directions, the central
+#     difference only in the four cardinal directions.
+#   - Whole-raster mean slope typically differs by a fraction of a degree; the
+#     difference is concentrated in rough terrain, not spread evenly.
 #
-# For a defensible comparison: resample to a common grid and resolution,
-# apply the scale-factor correction to both, restrict to unvegetated ground
-# (tundra, bare sediment, exposed bedrock, gravel bars), and state the epochs.
+# A difference between the NOAA lidar product and the ArcticDEM product is a
+# different question entirely, and confounds at least four effects: surface
+# type (DTM vs DSM), spatial scale (1 m vs 2 m), projection scale-factor
+# treatment, and acquisition epoch. Do not read it as terrain change without
+# separating them.
 # --------------------------------------------------------------------------

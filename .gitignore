@@ -1,0 +1,84 @@
+## OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+## Editors and IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+## Logs and runtime files
+*.log
+*.pid
+*.seed
+*.pid.lock
+logs/
+
+## Environment and secrets
+.env
+.env.*
+!.env.example
+
+## Dependencies and package managers
+node_modules/
+bower_components/
+jspm_packages/
+.npm/
+.yarn/
+.pnp.*
+
+## Build and coverage output
+dist/
+build/
+out/
+target/
+coverage/
+.nyc_output/
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+
+## Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+## Java and Gradle
+.gradle/
+*.class
+
+## Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+## Local databases
+*.sqlite
+*.sqlite3
+*.db

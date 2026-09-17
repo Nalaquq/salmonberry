@@ -32,7 +32,7 @@ $$
 
 Care was taken to avoid geometric projection errors in this calculation (see Appendix).
 
-### Appendix
+# Appendix
 
 ## 3.1 Coordinate reference system
 
