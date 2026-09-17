@@ -24,10 +24,10 @@ $$
 \frac{\partial Z}{\partial x} \approx \frac{(z_3 + 2z_6 + z_9) - (z_1 + 2z_4 + z_7)}{8\,dx}
 $$
 
-and in the row direction it differences the bottom row against the top row:
+and in the row direction it differences the bottom row against the top row (south and north):
 
 $$
-\frac{\partial Z}{\partial i} \approx \frac{(z_7 + 2z_8 + z_9) - (z_1 + 2z_2 + z_3)}{8\,dy}
+\frac{\partial Z}{\partial y} \approx \frac{(z_7 + 2z_8 + z_9) - (z_1 + 2z_2 + z_3)}{8\,dy}
 $$
 
 The weights are the method's defining feature: the cells lying directly along the axis of differentiation ($z_4, z_6$ for $x$; $z_2, z_8$ for $y$) receive weight 2, while the four diagonal cells receive weight 1. The denominator $8\,dx$ follows from the weights, since each of the four weighted units on one side is compared with its counterpart $2\,dx$ away: $4 \times 2\,dx = 8\,dx$. Equivalently, and more transparently, Horn's estimate is the $1:2:1$ weighted mean of three ordinary central differences taken along three parallel lines through the window:
@@ -37,8 +37,6 @@ $$
 $$
 
 Each of the three bracketed terms is a slope estimate in its own right; Horn's rule averages them. Averaging three parallel estimates reduces the influence of vertical error in any single elevation sample — for independent cell errors of standard deviation $s$, the standard deviation of the derivative estimate falls from $0.707\,s/dx$ for the central difference to $0.433\,s/dx$ — but the same transverse averaging is indifferent to whether the variation it smooths is noise or real terrain, so narrow features such as gully walls, terrace risers and road cuts are represented less sharply and extreme values are attenuated. The two estimators agree exactly on a planar surface and diverge only where the surface is curved across the direction of differentiation. Neither is universally preferable; Horn's method was adopted here because its response to the interpolation noise of a high-resolution DEM is more conservative, and because it is the estimator implemented by the slope tools of mainstream GIS packages, which makes the product comparable with published terrain layers. The companion product derived by central differences (`docs/method_central_differences.md`) is retained for comparison, both slope rasters being computed from the same DEM with the same cell size, z-factor and scale-factor treatment so that the estimator is the only thing that differs between them.
-
-The second equation above is written, as Horn published it, in terms of the array row index $i$, which increases downward and therefore southward on a north-up raster. The geographic derivative with respect to northing is $\partial Z / \partial y = -\,\partial Z / \partial i$ for such a raster, the sign being taken from the sign of the geotransform's pixel-height term. Because the $y$ derivative enters the slope only as a square, this sign cannot affect the slope magnitude; it is applied so that the stored derivative components remain correct for any later directional product such as aspect or flow direction.
 
 Horn's estimate requires a complete $3 \times 3$ window, so the derivative cannot be computed for the outermost row and column of the raster. As with the central-difference product, we assigned NoData to these edge cells rather than substituting a one-sided estimate, which would introduce bias and additional noise relative to the interior (see Appendix for the full NoData rule). This reduces the valid output raster to $(rows - 2) \times (cols - 2)$ cells. Tiled processing therefore used overlapping buffers of at least one cell, computing the differences on the buffered tile and discarding the buffer afterward.
 
