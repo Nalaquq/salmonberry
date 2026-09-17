@@ -27,7 +27,7 @@ $$
 and in the row direction it differences the bottom row against the top row:
 
 $$
-\frac{\partial Z}{\partial i} \approx \frac{(z_7 + 2z_8 + z_9) - (z_1 + 2z_2 + z_3)}{8\,dy}
+\frac{\partial Z}{\partial y} \approx \frac{(z_7 + 2z_8 + z_9) - (z_1 + 2z_2 + z_3)}{8\,dy}
 $$
 
 The weights are the method's defining feature: the cells lying directly along the axis of differentiation ($z_4, z_6$ for $x$; $z_2, z_8$ for $y$) receive weight 2, while the four diagonal cells receive weight 1. The denominator $8\,dx$ follows from the weights, since each of the four weighted units on one side is compared with its counterpart $2\,dx$ away: $4 \times 2\,dx = 8\,dx$. Equivalently, and more transparently, Horn's estimate is the $1:2:1$ weighted mean of three ordinary central differences taken along three parallel lines through the window:
