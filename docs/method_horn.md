@@ -1,12 +1,6 @@
 ### 3. Slope Derivation via Horn's Method
 
-Given the traditional-knowledge hypothesis that salmonberry distribution tracks elevation, slope was derived directly from the DEM as a candidate predictor. A digital elevation model (DEM) represents a continuous elevation surface, $Z = Z(x,y)$, as a regular grid of elevation values with cell size $(dx, dy)$ equal to the pixel resolution of the source data. Slope is derived from the _gradient_ of this surface — the vector of its first partial derivatives:
-
-$$
-\nabla Z = \left( \frac{\partial Z}{\partial x}, \frac{\partial Z}{\partial y} \right)
-$$
-
-Because elevation is known only at discrete grid points rather than continuously, these derivatives must be approximated numerically. We used **Horn's (1981) method**, a finite-difference estimator that reads the complete $3 \times 3$ block of cells surrounding each focal cell. Labeling the nine cells in reading order, with $z_5$ the focal cell whose slope is being computed:
+Subsequently, another slope data was derived from the original elevation data using the Horn's method. **Horn's method**, also applies the CDM but includes the diagonal entries of the elevation data. This method reads the complete $3 \times 3$ block of cells surrounding each focal cell. Labeling the nine cells in reading order, with $z_5$ the focal cell whose slope is being computed:
 
 $$
 \begin{matrix}
@@ -16,7 +10,7 @@ z_7 & z_8 & z_9
 \end{matrix}
 $$
 
-Here $z_2$ and $z_8$ lie directly north and south of the focal cell, $z_4$ and $z_6$ directly west and east, and $z_1$, $z_3$, $z_7$ and $z_9$ are the four diagonal neighbours. In array terms, $z_1 \dots z_3$ occupy the row above the focal cell (one row lower in index, which is north on a north-up raster), $z_4 \dots z_6$ the focal row, and $z_7 \dots z_9$ the row below.
+In this illustration, $z_2$ and $z_8$ lie directly north and south of the focal cell, $z_4$ and $z_6$ directly west and east, and $z_1$, $z_3$, $z_7$ and $z_9$ are the four diagonal neighbors. In array terms, $z_1 \dots z_3$ occupy the row above the focal cell (one row lower in index, which is north on a north-up raster), $z_4 \dots z_6$ the focal row, and $z_7 \dots z_9$ the row below.
 
 Horn's estimator forms a weighted difference between opposite sides of this window. In the $x$ (easting) direction it differences the east column against the west column:
 
@@ -24,7 +18,7 @@ $$
 \frac{\partial Z}{\partial x} \approx \frac{(z_3 + 2z_6 + z_9) - (z_1 + 2z_4 + z_7)}{8\,dx}
 $$
 
-and in the row direction it differences the bottom row against the top row (south and north):
+and in the $y$ direction it differences the bottom row against the top row (south and north):
 
 $$
 \frac{\partial Z}{\partial y} \approx \frac{(z_7 + 2z_8 + z_9) - (z_1 + 2z_2 + z_3)}{8\,dy}
@@ -36,17 +30,15 @@ $$
 \frac{\partial Z}{\partial x} \approx \frac{1 \cdot \frac{z_3 - z_1}{2dx} + 2 \cdot \frac{z_6 - z_4}{2dx} + 1 \cdot \frac{z_9 - z_7}{2dx}}{1 + 2 + 1}
 $$
 
-Each of the three bracketed terms is a slope estimate in its own right; Horn's rule averages them. Averaging three parallel estimates reduces the influence of vertical error in any single elevation sample — for independent cell errors of standard deviation $s$, the standard deviation of the derivative estimate falls from $0.707\,s/dx$ for the central difference to $0.433\,s/dx$ — but the same transverse averaging is indifferent to whether the variation it smooths is noise or real terrain, so narrow features such as gully walls, terrace risers and road cuts are represented less sharply and extreme values are attenuated. The two estimators agree exactly on a planar surface and diverge only where the surface is curved across the direction of differentiation. Neither is universally preferable; Horn's method was adopted here because its response to the interpolation noise of a high-resolution DEM is more conservative, and because it is the estimator implemented by the slope tools of mainstream GIS packages, which makes the product comparable with published terrain layers. The companion product derived by central differences (`docs/method_central_differences.md`) is retained for comparison, both slope rasters being computed from the same DEM with the same cell size, z-factor and scale-factor treatment so that the estimator is the only thing that differs between them.
+Each of the three bracketed terms is a slope estimate in its own right; Horn's rule averages them. Averaging three parallel estimates reduces the influence of vertical error in any single elevation sample — for independent cell errors of standard deviation $s$, the standard deviation of the derivative estimate falls from $0.707\,s/dx$ for the central difference to $0.433\,s/dx$ — but the same transverse averaging is indifferent to whether the variation it smooths is noise or real terrain, so narrow features such as gully walls, terrace risers and road cuts are represented less sharply and extreme values are attenuated. The two estimators agree exactly on a planar surface and diverge only where the surface is curved across the direction of differentiation. However, since mounds in the site of study are averagely small (~1-2m), the CDM-derived slope data was hypothesized to explain salmonberry distribution more accurately. The averaging in Horn's method potentially misses the representation of these small mounds, where berries are often picked by the local community. The two slope derivatives were used and compared for accuracy.
 
-Horn's estimate requires a complete $3 \times 3$ window, so the derivative cannot be computed for the outermost row and column of the raster. As with the central-difference product, we assigned NoData to these edge cells rather than substituting a one-sided estimate, which would introduce bias and additional noise relative to the interior (see Appendix for the full NoData rule). This reduces the valid output raster to $(rows - 2) \times (cols - 2)$ cells. Tiled processing therefore used overlapping buffers of at least one cell, computing the differences on the buffered tile and discarding the buffer afterward.
+Again, we applied padding to the edge cells (see Appendix for the Padding rule). This reduces the valid output raster to $(rows - 2) \times (cols - 2)$ cells. Tiled processing therefore used overlapping buffers of at least one cell, computing the differences on the buffered tile and discarding the buffer afterward.
 
-Once the partial derivatives were estimated, gradient magnitude was calculated as:
+Once the partial derivatives were estimated, the same method (from CDM) was used to calculate the gradient magnitude as:
 
 $$
 |\nabla Z| = \sqrt{\left(\frac{\partial Z}{\partial x}\right)^2 + \left(\frac{\partial Z}{\partial y}\right)^2}
 $$
-
-Physically, $\nabla Z$ points in the direction of steepest ascent, and its magnitude gives the rate of elevation change per unit horizontal distance traveled in that direction. Because elevation and horizontal distance share the same linear unit, $|\nabla Z|$ is dimensionless (rise per unit run).
 
 Slope angle, $\theta$, in degrees, was then obtained from the arctangent of the gradient magnitude:
 
@@ -54,7 +46,7 @@ $$
 \theta = \frac{\arctan(|\nabla Z|) \times 180}{\pi}
 $$
 
-Care was taken to avoid geometric projection errors in this calculation (see Appendix). The resulting raster stores **slope angle in degrees**, mathematically confined to $0 \leq \theta < 90$; it is not elevation, and it is not percent slope ($|\nabla Z| \times 100$), which is an unbounded alternative parameterisation of the same gradient reported only in the run log.
+The right geometric projections were applied.
 
 # Appendix
 
@@ -155,7 +147,7 @@ warning stating the measured k and the resulting bias, so the choice is never
 made silently. If the two slope products are to be compared, the setting must
 be the same for both.
 
-4. NoData handling
+## 4. Padding Rule
 
 ---
 
