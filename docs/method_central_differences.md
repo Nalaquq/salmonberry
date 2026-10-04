@@ -1,22 +1,20 @@
 ### 3. Slope Derivation via Central Differences
 
-Given the traditional-knowledge hypothesis that salmonberry distribution tracks elevation, slope was derived directly from the DEM as a candidate predictor. A digital elevation model (DEM) represents a continuous elevation surface, $Z = Z(x,y)$, as a regular grid of elevation values with cell size $(dx, dy)$ equal to the pixel resolution of the source data. Slope is derived from the _gradient_ of this surface — the vector of its first partial derivatives:
+Given the traditional-knowledge hypothesis that salmonberry distribution tracks elevation, and that they are more abundant on the sides of mounds, slope was derived directly from the DEM as a candidate predictor. Slope is derived from the gradient of this surface — the vector of its first partial derivatives:
 
 $$
 \nabla Z = \left( \frac{\partial Z}{\partial x}, \frac{\partial Z}{\partial y} \right)
 $$
 
-Because elevation is known only at discrete grid points rather than continuously, these derivatives must be approximated numerically. We used the **central differences method**, which estimates the derivative at a given cell from its two neighboring cells on either side, in each direction:
+Because elevation (i.e. the raster DEM) is known only at discrete grid points rather than continuously, these derivatives must be approximated numerically. We used the central differences method (CDM), which estimates the derivative at a given cell from its two neighboring cells on either side, in each direction:
 
 $$
 Z'(x) \approx \frac{Z(x+dx) - Z(x-dx)}{2dx}
 $$
 
-This estimator can be derived from a Taylor expansion of the elevation surface about the focal cell in both the $+dx$ and $-dx$ directions. Subtracting the two expansions cancels both the focal elevation value and the second-order curvature term, leaving an approximation whose leading error scales with $dx^2$. This makes the central-difference estimate _second-order accurate_: halving the cell size reduces the truncation error roughly fourfold, compared to the coarser, first-order accuracy of simple forward or backward differences.
+The CDM is derived using a Taylor expansion of the elevation surface about the focal cell in both the $+dx$(forward difference) and $-dx$(backward difference) directions.
 
-In practice, this means each cell's derivative is computed from its immediate neighbors — one column apart in the x-direction, one row apart in the y-direction — which requires at least three cells (one focal, two flanking) per estimate. Consequently, the derivative cannot be computed for the outermost row and column of the raster. Forward or backward differences could approximate slope at these edge cells, but doing so introduces bias and additional noise relative to the central-difference interior. We instead assigned NoData to edge cells, making this limitation explicit and machine-readable rather than silently degrading accuracy (see Appendix for the full NoData rule). This reduces the valid output raster to $(rows - 2) \times (cols - 2)$ cells — a negligible loss for a large DEM, but a meaningful one for small tiles. Tiled processing therefore used overlapping buffers of at least one cell, computing differences on the buffered tile and discarding the buffer afterward.
-
-Once the partial derivatives were estimated, gradient magnitude was calculated as:
+In practice, this means each cell's derivative is computed from its immediate neighbors — one column apart in the x-direction, one row apart in the y-direction — which requires at least three cells (one focal, two flanking) per estimate. Consequently, the derivative cannot be computed for the outermost row and column of the raster. Therefore, we instead assigned NoData to edge cells, making this limitation explicit and machine-readable rather than silently degrading accuracy (see Appendix for the Padding rule). This reduces the valid output raster to $(rows - 2) \times (cols - 2)$ cells, which is a negligible loss for a large DEM. Once the partial derivatives were estimated, gradient magnitude was calculated as:
 
 $$
 |\nabla Z| = \sqrt{\left(\frac{\partial Z}{\partial x}\right)^2 + \left(\frac{\partial Z}{\partial y}\right)^2}
@@ -30,7 +28,7 @@ $$
 \theta = \frac{\arctan(|\nabla Z|) \times 180}{\pi}
 $$
 
-Care was taken to avoid geometric projection errors in this calculation (see Appendix).
+We made sure to avoid geometric projection errors in this calculation (see Appendix).
 
 # Appendix
 
@@ -139,7 +137,7 @@ Whenever it is off and the detected distortion exceeds 0.1 %, the module emits a
 warning stating the measured k and the resulting bias, so the choice is never
 made silently.
 
-4. NoData handling
+## 4. Padding Rule
 
 ---
 
