@@ -1,0 +1,3 @@
+# Pipeline outputs and (future) data files are not version-controlled.
+output/
+data/

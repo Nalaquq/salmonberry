@@ -1,0 +1,20 @@
+# ==========================================================================
+# Configuration for scripts/flank_persistence.py
+#
+#     python scripts/flank_persistence.py --config config/flank_persistence_config.yaml
+#
+# Writes exactly one raster: <output_directory>/flank_persistence.tif
+# Independent of config/slope_config.yaml; it never touches slope outputs.
+#
+# Relative paths resolve against THIS FILE'S directory. Unknown keys are an
+# error. See docs/flank_persistence.md.
+# ==========================================================================
+
+input_elevation_path: "path/to/input_dem.tif"
+output_directory: "path/to/output_directory"
+
+# Horizontal sampling distance in metres.
+jump_distance_m: 1.0
+
+# Minimum gradient magnitude required for a valid focal cell.
+minimum_gradient: 1.0e-8

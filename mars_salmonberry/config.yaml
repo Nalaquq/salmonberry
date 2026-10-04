@@ -1,0 +1,156 @@
+# =============================================================================
+# config.yaml: configuration for mars_salmonberry.R
+#
+# TEMPLATE. The data paths below are placeholders. The pipeline refuses to run
+# until they point to real CSV files exported from ArcGIS Pro (see
+# DATA_SCHEMA.md). Relative paths are resolved against THIS file's folder.
+# =============================================================================
+
+project:
+  name: "Salmonberry occurrence: MARS with LiDAR slope vs. moundness"
+
+# -----------------------------------------------------------------------------
+# Input files (do not exist yet; replace the placeholders when they do)
+# -----------------------------------------------------------------------------
+data:
+  train_path: "path/to/train.csv"   # e.g. "data/train.csv"
+  test_path: "path/to/test.csv"     # e.g. "data/test.csv"
+  # Text values treated as missing (ArcGIS exports often use "" or "<Null>").
+  # Add numeric NoData sentinels here ONLY if they occur, e.g. "-9999".
+  na_values: ["", "NA", "NaN", "NULL", "<Null>"]
+
+# -----------------------------------------------------------------------------
+# Column names in the CSV files (case-sensitive). Change these if the ArcGIS
+# Pro field names differ; the R script contains no hard-coded column names.
+# -----------------------------------------------------------------------------
+variables:
+  id: "ID"
+  response: "SALMONBERRY"
+  x: "X"                  # coordinates: carried into prediction files, never
+  y: "Y"                  # used as predictors (set to null if absent)
+  block_id: "BLOCK_ID"    # spatial block (required in training data)
+  fold_id: "FOLD_ID"      # spatial CV fold (required in training data)
+  # Predictors: key (used in the model list below) -> CSV column name.
+  # To add a predictor later (e.g. another PlanetScope band), add a line here
+  # and reference its key in a model.
+  predictors:
+    slope: "SLOPE"
+    moundness: "MOUNDNESS"
+    blue: "BLUE"
+
+# How presence and absence are coded in the response column.
+response_coding:
+  presence: 1
+  absence: 0
+
+# -----------------------------------------------------------------------------
+# Competing models (predictor KEYS from variables$predictors)
+# -----------------------------------------------------------------------------
+models:
+  - name: "M1_moundness"
+    label: "M1: Moundness"
+    predictors: [moundness]
+  - name: "M2_slope"
+    label: "M2: Slope"
+    predictors: [slope]
+  - name: "M3_moundness_blue"
+    label: "M3: Moundness + Blue"
+    predictors: [moundness, blue]
+  - name: "M4_slope_blue"
+    label: "M4: Slope + Blue"
+    predictors: [slope, blue]
+  - name: "M5_moundness_slope_blue"
+    label: "M5: Moundness + Slope + Blue"
+    predictors: [moundness, slope, blue]
+
+# Paired per-fold contrasts: DELTA_AUC = AUC(model_a) - AUC(model_b).
+comparisons:
+  - name: "slope_vs_moundness"
+    description: "Primary hypothesis: slope-only vs. moundness-only MARS"
+    model_a: "M2_slope"
+    model_b: "M1_moundness"
+    primary: true
+  - name: "slope_blue_vs_moundness_blue"
+    description: "Secondary: slope + blue vs. moundness + blue"
+    model_a: "M4_slope_blue"
+    model_b: "M3_moundness_blue"
+    primary: false
+
+# -----------------------------------------------------------------------------
+# Modeling settings (identical for every model)
+# -----------------------------------------------------------------------------
+model:
+  seed: 12345
+  # Hard classification: predicted_class = 1 if probability >= threshold.
+  # ROC-AUC does not use this threshold. Never tune it on the test data.
+  classification_threshold: 0.5
+  # Must equal the number of distinct FOLD_ID values in the training data.
+  number_of_folds: 5
+
+  # MARS settings passed to earth::earth(); null = earth's default.
+  mars:
+    degree: 1          # 1 = additive (no interactions); 2 = pairwise interactions
+    nprune: null       # max terms after pruning; null = chosen by GCV
+    penalty: null      # GCV cost per knot; null = 2 (degree 1) or 3 (degree > 1)
+    nk: null           # max forward-pass terms; null = earth default
+    thresh: 0.001      # forward-pass stopping threshold (R^2 improvement)
+    minspan: 0         # 0 = automatic knot spacing (Friedman 1991)
+    endspan: 0         # 0 = automatic distance of knots from data ends
+    pmethod: "backward"
+    glm_maxit: 100     # max iterations for the binomial GLM step
+
+  # How model complexity is chosen:
+  #   "gcv"        earth's GCV backward pruning (standard MARS; default)
+  #   "spatial_cv" nested spatial CV with caret over degree_grid x nprune_grid;
+  #                inner folds are the remaining FOLD_IDs of each outer
+  #                training set, so tuning also respects the spatial blocks.
+  tuning:
+    method: "gcv"
+    degree_grid: [1, 2]
+    nprune_grid: [2, 3, 4, 5, 6, 8, 10]
+
+# -----------------------------------------------------------------------------
+# Model carried forward to the test set
+# -----------------------------------------------------------------------------
+final_model:
+  # Set a model name here to pre-register the choice (recommended), e.g.
+  # "M2_slope". If null, the model with the highest mean spatial-CV AUC is
+  # used (ties -> fewer predictors). The test set never influences this.
+  selected_model: null
+  selection_rule: "highest_mean_cv_auc"
+
+evaluation:
+  # false = the test CSV is not required and never read. Useful for a
+  # two-stage workflow: run CV, fix all decisions, then set to true.
+  run_test_evaluation: true
+  # true = also report every model on the test set (descriptive only; must not
+  # be used to choose a model after the fact).
+  evaluate_all_models_on_test: false
+
+# -----------------------------------------------------------------------------
+# Data checks
+# -----------------------------------------------------------------------------
+validation:
+  missing_values: "error"            # "error" (stop) or "drop" (exclude rows, reported)
+  min_observations_per_fold: 10
+  min_per_class_per_fold: 2          # presences AND absences needed in every fold
+  minority_class_warning_proportion: 0.20
+  check_duplicate_coordinates: true
+
+# -----------------------------------------------------------------------------
+# Outputs
+# -----------------------------------------------------------------------------
+output:
+  directory: "output"                # relative to this file
+  save_fold_models: true             # also save the K x models CV fits (.rds)
+
+variable_importance:
+  metric: "gcv"                      # gcv, nsubsets, or rss (earth::evimp)
+
+plots:
+  width_in: 7
+  height_in: 5
+  dpi: 300
+  formats: ["png", "pdf"]
+  response_curve_predictors: [slope, moundness]   # predictor keys
+  response_curve_points: 200
